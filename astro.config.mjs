@@ -3,6 +3,8 @@ import NetlifyCMS from 'astro-netlify-cms';
 
 import netlify from "@astrojs/netlify/functions";
 
+import { englishPosts, spanishPosts } from './src/schemas/posts';
+
 // https://astro.build/config
 export default defineConfig({
     integrations: [NetlifyCMS({
@@ -12,7 +14,7 @@ export default defineConfig({
             branch: 'main'
         },
         collections: [
-            // Content collections
+            englishPosts, spanishPosts
         ]
     }
     })],
