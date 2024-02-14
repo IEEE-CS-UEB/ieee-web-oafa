@@ -1,8 +1,4 @@
-import { type CmsCollection } from "netlify-cms-core";
-import societies from "../data/societies";
-import engineers from "../data/engineers";
-
-const englishPosts: CmsCollection = {
+const englishPosts = {
   name: "englishPosts",
   label: "Publicaciones en Inglés",
   label_singular: "Publicación en Inglés",
@@ -11,6 +7,12 @@ const englishPosts: CmsCollection = {
   delete: true,
   fields: [
     {
+      label: "ID (No tocar)",
+      name: "id",
+      widget: "string",
+      default: () => Date.now(),
+    },
+    {
       label: "Title",
       name: "title",
       widget: "string",
@@ -18,8 +20,11 @@ const englishPosts: CmsCollection = {
     {
       label: "Society (Capítulo)",
       name: "society",
-      widget: "select",
-      options: societies,
+      widget: "relation",
+      collection: "societies",
+      searchFields: ["name"],
+      valueField: "name",
+      displayFields: ["image", "name"],
     },
     {
       label: "Type",
@@ -30,8 +35,11 @@ const englishPosts: CmsCollection = {
     {
       label: "Author",
       name: "author",
-      widget: "select",
-      options: Object.entries(engineers).map((e) => e[1]),
+      widget: "relation",
+      collection: "members",
+      searchFields: ["name", "society"],
+      valueField: "name",
+      displayFields: ["name"],
     },
     {
       label: "Image",
@@ -46,7 +54,7 @@ const englishPosts: CmsCollection = {
   ],
 };
 
-const spanishPosts: CmsCollection = {
+const spanishPosts = {
   name: "spanishPosts",
   label: "Publicaciones en Español",
   label_singular: "Publicación en Español",
@@ -60,10 +68,13 @@ const spanishPosts: CmsCollection = {
       widget: "string",
     },
     {
-      label: "Capítulo / Sociedad",
+      label: "Capítulo",
       name: "society",
-      widget: "select",
-      options: societies,
+      widget: "relation",
+      collection: "societies",
+      searchFields: ["name"],
+      valueField: "name",
+      displayFields: ["image", "name"],
     },
     {
       label: "Tipo",
@@ -74,11 +85,14 @@ const spanishPosts: CmsCollection = {
     {
       label: "Autor",
       name: "author",
-      widget: "select",
-      options: Object.entries(engineers).map((e) => e[1]),
+      widget: "relation",
+      collection: "members",
+      searchFields: ["name", "society"],
+      valueField: "name",
+      displayFields: ["name"],
     },
     {
-      label: "Imagen",
+      label: "Imagen de Portada",
       name: "img",
       widget: "image",
     },

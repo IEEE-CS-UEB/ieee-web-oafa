@@ -1,0 +1,98 @@
+---
+import EveryPage from "./EveryPage.astro";
+const { frontmatter } = Astro.props;
+
+let langPathname = Astro.url.pathname.length > 3 ? Astro.url.pathname.match(/^\/\w+/)[0] : Astro.url.pathname
+langPathname.charAt[langPathname.length -1] !== '/' ? langPathname += '/' : ()=>{}
+console.log(langPathname)
+---
+
+<EveryPage>
+<div class="Page">
+  <div class="Img" style={
+          `background-image: url(${frontmatter.img});
+          width: 100%;
+          height: 300px;`}
+       ></div>
+  <div id="Crumbs">
+    <a href={`${langPathname}posts?society=Computer`}>{frontmatter.society}</a>
+    <a href={`${langPathname}posts?society=Computer&type=${frontmatter.type}s`}>{frontmatter.type}s</a>
+    <span>{frontmatter.title}</span>
+  </div>
+  <div id="Content" class="Container">
+    <div id="Meta">
+      <div class="Author Img" style="background-image: url(https://i.imgur.com/kW2Olq1.png);"></div>
+      <div class="Author Name">{frontmatter.author} | {frontmatter.society}</div>
+      <div class="Badge" style="
+  background-color: var(--theme-main);">Blog</div>
+    </div>
+    <h1>{frontmatter.title}</h1>
+    <slot/>
+  </div>
+</div>
+</EveryPage>
+
+<style>
+    section {
+  display: flex;
+}
+
+body {
+  background-color: #f3f3f3;
+}
+
+.Container {
+  background-color: #ffffff;
+  border: 1px solid var(--theme-stroke);
+  border-radius: 10px;
+  padding: 30px 25px;
+}
+
+#Crumbs {
+  padding: 10px 0;
+  color: var(--theme-for1);
+}
+
+#Crumbs > a {
+  text-decoration: none;
+  color: var(--theme-for1);
+}
+
+#Crumbs > a:not(:first-of-type) {
+  margin-left: 25px;
+}
+
+#Crumbs > a:hover {
+  text-decoration: underline;
+}
+
+#Crumbs > a:after {
+    content: '\003E';
+    margin: 0 10px;
+    position: absolute;
+    pointer-events: none;
+}
+
+#Crumbs > span {
+  margin-left: 25px;
+}
+
+#Meta > *,
+#Meta > * > *:not(.Img) {
+  display: inline;
+}
+
+.Page {
+  margin: 0 0;
+}
+
+.Page > *:not(.Img) {
+  margin: 0 15px;
+}
+
+#Meta .Author.Pic {
+  width: 30px;
+  aspect-ratio: 1 / 1;
+  background-position: center;
+}
+</style>

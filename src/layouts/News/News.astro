@@ -1,0 +1,106 @@
+---
+import "./News.css";
+import Post from "../../components/ArticlePreview/ArticlePreview.astro";
+import Filter from "../../components/Filter.astro";
+import EveryPage from "../EveryPage.astro";
+import { dissectPathname } from "../../shenanigans/routing";
+import fs from "fs";
+
+const { lang } = dissectPathname(Astro.url.pathname);
+const { filterText } = Astro.props.frontmatter;
+// console.log(filterText)
+
+const allPosts = await Astro.glob("../../pages/*/posts/*.md");
+//console.log(allPosts)
+
+const postsSourcePath: RegExp = new RegExp(`\/${lang}\/`, "gm");
+const relevantPosts = allPosts.filter(
+  (post) => post.file.match(postsSourcePath) && !post.url.match(/posts$/)
+);
+
+//const articleIDs: {} = JSON.parse(
+  //fs.readFileSync("src/data/article-ids.json").toString()
+//);
+
+const namifyURL = (articleURL: string) => {
+  return articleURL
+    .replace(/(\/.+)(?=\/.+$)/gm, "")
+    .replace(/\//gm, "")
+};
+
+const getArticleID = (articleName: string) => {
+  const requiredArticleName = namifyURL(articleName);
+  // console.log(`artname: ${requiredArticleName}`)
+  // console.log('artIDs:')
+  // console.log(articleIDs)
+  // console.log(`[${lang}][${requiredArticleName}]`);
+  return articleIDs[lang][requiredArticleName];
+};
+
+/*
+
+// POSTS VIEWS
+// Primero sin paginación, luego se agrega
+let postViewsData = await fetch(import.meta.env.REPLIT_DB_URL, {
+  method: "GET",
+  headers: { "content-type": "application/json" },
+});
+
+// FIXME: ESTA MIERDA NO SIRVE
+const postViews: [{ id; article_id; article_views }] = await postViewsData.json();
+
+const getPostViewsFromID = (id: number) => {
+  if (postViews || postViews?.find) {
+    return postViews.find((views) => views.id === id).article_views;
+  } else {
+    return "[Error]";
+  }
+};
+
+*/
+
+// FILTER POSTS
+
+// LOGGING STUFF
+//console.log(relevantPosts.map((post) => post.url))
+//console.log(relevantPosts);
+---
+
+<EveryPage>
+  <div class="News">
+    <div
+      style={{
+        position: "fixed",
+        width: "25%",
+      }}
+    >
+      <Filter text={filterText} />
+    </div>
+
+    <div class="post">
+      {
+        relevantPosts.map(
+          ({ frontmatter: { author, img, title, society, type }, url }) => (
+            <Post
+              {...{
+                author,
+                img,
+                title,
+                society,
+                type,
+                href: namifyURL(url),
+                views: 0,
+              }}
+            />
+          )
+        )
+      }
+    </div>
+  </div>
+</EveryPage>
+
+<style>
+  body {
+    background-color: #f3f3f3;
+  }
+</style>

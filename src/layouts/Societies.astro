@@ -1,0 +1,495 @@
+---
+import { Icon } from "astro-icon";
+import EveryPage from "../layouts/EveryPage.astro";
+import { dissectPathname } from "../shenanigans/routing";
+
+const { frontmatter } = Astro.props;
+let { fullAstroPathname, langPathname, lang } = dissectPathname(
+  Astro.url.pathname
+);
+import { getCollection } from "astro:content";
+
+interface ICollectionEntry {
+  id: string;
+  slug: string;
+  body: string;
+  collection: string;
+  data: any;
+}
+
+const societies: Array<ICollectionEntry> = await getCollection("societies");
+const engineers: Array<ICollectionEntry> = await getCollection("members");
+
+const getUniques = (arr: [], prop: string) => {
+  let uniqueBuffer: Array<{} | null> = [];
+  let uniqueResult: Array<{} | null> = [];
+  arr.forEach((arrItem: any) => {
+    uniqueBuffer.find((buffer: any) => buffer === arrItem[prop]) == undefined
+      ? uniqueBuffer.push(arrItem[prop])
+      : uniqueBuffer.push(null);
+  });
+  uniqueBuffer.forEach((buffer: any) => {
+    buffer === null
+      ? null
+      : uniqueResult.push(arr[uniqueBuffer.indexOf(buffer)]);
+  });
+  return uniqueResult;
+};
+
+let engineersBySociety: { [key: string]: any } = {};
+getUniques(engineers, "society").forEach((e: any) => {
+  const society = societies.find((s) => s.data.name === e.data.society);
+  const societyName = society?.data.name.toLowerCase().replace(/\s/, "");
+  engineersBySociety[societyName] = [];
+});
+engineers.forEach((e: any) => {
+  engineersBySociety[e.data.society.toLowerCase().replace(/\s/, "")].push(e);
+});
+---
+
+<script>
+  // Setup content
+  import { getCollection } from "astro:content";
+
+  interface ICollectionEntry {
+    id: string;
+    slug: string;
+    body: string;
+    collection: string;
+    data: any;
+  }
+
+  const societies: Array<ICollectionEntry> = await getCollection("societies");
+  const engineers: Array<ICollectionEntry> = await getCollection("members");
+
+  const s_query = new URLSearchParams(window.location.search).get("s");
+
+  let societyIndex: number = 0;
+
+  const getUniques = (arr: ICollectionEntry[], prop: string) => {
+    let uniqueBuffer: Array<any> = [];
+    let uniqueResult: Array<any> = [];
+    arr.forEach((arrItem: any) => {
+      uniqueBuffer.find((buffer: any) => buffer === arrItem[prop]) == undefined
+        ? uniqueBuffer.push(arrItem[prop])
+        : uniqueBuffer.push(null);
+    });
+    uniqueBuffer.forEach((buffer: any) => {
+      buffer === null
+        ? null
+        : uniqueResult.push(arr[uniqueBuffer.indexOf(buffer)]);
+    });
+    console.log(`getUniques was used: ${JSON.stringify(uniqueResult)}`)
+    return uniqueResult;
+  };
+
+  console.log(`societies: ${JSON.stringify(societies)}`)
+
+  const societyIndexByName = (nameQuery: string) => {
+    return societies.findIndex(s => s.data.name === nameQuery)
+  }
+
+  let engineersBySociety: { [key: string]: any } = {};
+
+  getUniques(engineers, "society").forEach((engi) => {
+    const societyName: string =
+      societies[societyIndexByName(engi.data.society)].data.name.toLowerCase();
+    engineersBySociety[societyName] = [];
+  });
+  engineers.forEach((e: ICollectionEntry) => {
+    engineersBySociety[e.data.society.toLowerCase()].push(e);
+  });
+
+  const engineerCardElm = (name: string, img: string) => `
+    <div class="Engineer Card Container">
+      <div
+        class="Img Notext"
+        style="background-image:url(${img});
+        border-radius: 5px; width:225px;
+        height:160px;">
+        <img alt="Foto de ${name}" />
+      </div>
+      <h2>${name}</h2>
+      <div class="Info">
+        <Icon name="ph:newspaper" width="20px" />
+        <span>[Error]</span>
+      </div>
+    </div>
+  `;
+
+  document
+    .querySelectorAll("#Societies > .Society.Card")
+    .forEach((sc: Element) => {
+      const _sc = sc as HTMLElement;
+      sc.addEventListener("click", () => {
+        const societyElm: HTMLElement | null =
+          document.querySelector("#Society");
+        const societyName: string | undefined = _sc.querySelector('h2')!.textContent;
+        console.log(societyName)
+        console.log(_sc)
+        const societyEntry: ICollectionEntry | undefined = societies[societyIndexByName(societyName as string)]
+
+        // ponemos la info de la sociedad clickeada
+        const _lang = (document.querySelector('.Page') as HTMLElement)!.dataset.lang
+        societyElm!.querySelector('#Name')!.textContent = societyEntry!.data[`name-${_lang}`];
+        // societyElm!.querySelector('.Page')!.textContent = societyEntry!.data[`name-${_lang}`];
+        societyElm!.querySelector("#Description")!.textContent = societyEntry!.data[`desc-${_lang}`];
+        societyElm!.querySelector("#Mission")!.textContent = societyEntry!.data[`mis-${_lang}`];
+        societyElm!.querySelector("#Vision")!.textContent = societyEntry!.data[`vis-${_lang}`];
+
+        // animación y aspecto
+        societyElm!.classList.contains("Hidden")
+          ? societyElm!.classList.toggle("Hidden")
+          : () => {};
+        (societyElm!.querySelector(
+          "#Society > header > div.Img.Notext"
+        ) as HTMLElement)!.style.backgroundImage = `url('${societies[societyIndex].data.logo}')`;
+        (societyElm!.querySelector(
+          "#Society > #Banner.Img.Notext"
+        ) as HTMLElement)!.style.backgroundImage = `url('${societies[societyIndex].data.banner}')`;
+        (societyElm!.querySelector(
+          "#Society > header > div.Img.Notext > img"
+        )! as HTMLImageElement).alt = `Logotipo de ${societies[societyIndex].data.name}`;
+        societyElm!.querySelector("#Engineers")!.innerHTML = "";
+        societyElm!.querySelector("#Engineers")!.innerHTML = engineersBySociety[
+          societies[societyIndex].data.name.toLowerCase()
+        ].map((e: ICollectionEntry) => engineerCardElm(e.data.name, e.data.img));
+        societyElm!.querySelector("#Engineers")!.innerHTML = document.querySelector("#Engineers")!
+          .innerHTML.replace(",", "");
+        setTimeout(
+          () =>
+            scrollTo(
+              0,
+              societyElm!.getBoundingClientRect().y + window.pageYOffset
+            ),
+          300
+        );
+      });
+    });
+
+  const revealInfo = (info) => {
+    document.querySelectorAll("#Society > #Info > .Text").forEach((t) => {
+      t.classList.remove("Hidden");
+      if (t.id !== info) {
+        t.classList.add("Hidden");
+      }
+    });
+  };
+
+  document.querySelector("#Society > #Close")!.addEventListener("click", () => {
+    scrollTo(0, 0);
+    setTimeout(
+      () => document.querySelector("#Society")!.classList.toggle("Hidden"),
+      300
+    );
+  });
+
+  document
+    .querySelectorAll("#Society > #Info > .Options > button")
+    .forEach((b) => {
+      b.addEventListener("click", (e) => revealInfo((e.target! as HTMLElement).dataset.info));
+    });
+
+  if (s_query !== null) {
+    const whichSociety = societies.find(
+      (sc: ICollectionEntry) => sc.data.name.toLowerCase() === s_query!.replace("_", " ")
+    );
+    const societyElm: HTMLElement | null = document.querySelector("#Society");
+    // Change societyElm (#Society)
+    societyElm.querySelector("#Name").textContent = whichSociety.name;
+    const lang = document.querySelector(".Page").dataset.lang;
+    societyElm.querySelector("#Description").textContent =
+      whichSociety[lang].desc;
+    societyElm.querySelector("#Mission").textContent =
+      whichSociety[lang].mission;
+    societyElm.querySelector("#Vision").textContent = whichSociety[lang].vision;
+    societyElm.classList.contains("Hidden")
+      ? societyElm.classList.toggle("Hidden")
+      : () => {};
+    societyElm.querySelector(
+      "#Society > header > div.Img.Notext"
+    ).style.backgroundImage = `url('${whichSociety.logo}')`;
+    societyElm.querySelector(
+      "#Society > header > div.Img.Notext > img"
+    ).alt = `Logotipo de ${whichSociety.name}`;
+    societyElm.querySelector("#Engineers").innerHTML = "";
+    societyElm.querySelector("#Engineers").innerHTML = engineersBySociety[
+      whichSociety.name.toLowerCase()
+    ].map((e) => engineerCardElm(e.name, e.img));
+    societyElm.querySelector("#Engineers").innerHTML = document
+      .querySelector("#Engineers")
+      .innerHTML.replace(",", "");
+    setTimeout(
+      () =>
+        scrollTo(0, societyElm.getBoundingClientRect().y + window.pageYOffset),
+      300
+    );
+  }
+</script>
+
+<EveryPage>
+  <div class="Page" data-lang={lang}>
+    <h2>Explore Societies</h2>
+    <div id="Societies">
+      {
+        societies.map((s, i) => (
+          <button data-society-id={i} class="Society Card Container">
+            <div
+              class="Img Notext"
+              style={`background-image:url(${s.data.img}); width:225px; height:160px;`}
+            >
+              <img />
+            </div>
+            <h2>{s.data.name}</h2>
+            <div class="Info">
+              <Icon name="ph:users" width="20px" />
+              <span>
+                {
+                  engineersBySociety[
+                    s.data.name.toLowerCase().replace(/\s/, "")
+                  ].length
+                }
+              </span>
+              <Icon name="ph:newspaper" width="20px" />
+              <span>[Error]</span>
+            </div>
+          </button>
+        ))
+      }
+      <div
+        id="Society"
+        class="Hidden Container"
+        style="padding: 0; position: relative; padding-bottom: 20px; overflow: clip; margin-top: 30px;"
+      >
+        <button id="Close">
+          <Icon name="ph:x-bold" color="white" style="" width="24px" />
+        </button>
+        <div
+          id="Banner"
+          class="Img Notext"
+          style="
+          background-image: url(https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80);
+          width: 100%;
+          height: 200px;"
+        >
+          <img alt="XD" />
+        </div>
+        <header
+          style="position: relative; border-bottom: 1px solid var(--theme-stroke); margin-bottom: 15px;"
+        >
+          <div class="Img Notext" style="">
+            <img alt="Loguito" />
+          </div>
+          <!--<Icon
+            name="ph:user-circle"
+            width="100px"
+            style="position: absolute; top: -30px;"
+          />-->
+          <h1 id="Name"></h1>
+        </header>
+        <div id="Info" class="Container">
+          <div class="Options">
+            <button data-info="Description"> Desc.</button>
+            <button data-info="Mission"> Mission</button>
+            <button data-info="Vision"> Vision</button>
+          </div>
+          <div id="Description" class="Text">INFO BACANA</div>
+          <div id="Mission" class="Text Hidden">INFO BACANA</div>
+          <div id="Vision" class="Text Hidden">INFO BACANA</div>
+        </div>
+        <div id="Engineers"></div>
+      </div>
+    </div>
+  </div>
+</EveryPage>
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+
+  #Societies {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 48px;
+    positon: relative;
+  }
+
+  .Card {
+    background: none;
+    width: fit-content;
+  }
+
+  .Society:hover {
+    opacity: 0.9;
+    cursor: pointer;
+    transform: scale(0.97);
+  }
+
+  .Society:active {
+    opacity: 0.5;
+    transform: scale(0.93);
+  }
+
+  .Society.Focus {
+    opacity: 0.8;
+  }
+
+  .Card > h2 {
+    text-align: left;
+  }
+
+  .Card > .Img {
+    border-radius: 5px;
+    margin-bottom: 15px;
+  }
+
+  .Card > .Info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .Society > .Info > *:not(:nth-child(1)) {
+    margin-left: 15px;
+  }
+
+  .Society > .Info > *:nth-child(3) {
+    margin-left: 30px;
+  }
+
+  .Society > .Info > *:nth-child(5) {
+    margin-left: 30px;
+  }
+
+  button.Primary.Small {
+    padding: 10px 15px;
+    font-size: 15px;
+  }
+
+  /* h2 Semibold, h1 Extrabold */
+
+  #Society {
+    position: relative;
+    width: 100%;
+  }
+
+  #Society:not(.Hidden) {
+    animation: appear 300ms ease-in-out;
+  }
+
+  @keyframes appear {
+    from {
+      opacity: 0;
+    }
+    to {
+    }
+  }
+
+  #Society > header {
+    min-height: 140px;
+  }
+
+  #Society > * {
+    padding: 0px 20px;
+  }
+
+  #Society h1 {
+    margin-top: 10px;
+    padding-left: 115px;
+  }
+
+  #Society > header > .Img.Notext {
+    z-index: 1;
+    position: absolute;
+    top: -27px;
+    border: 1px solid var(--theme-stroke);
+    border-radius: 300px;
+    width: 100px;
+    aspect-ratio: 1/1;
+    background-position: center;
+  }
+
+  .Engineer.Card > div.Img.Notext {
+  }
+
+  .Engineer.Card > .Info > *:not(:nth-child(1)) {
+    margin-left: 15px;
+  }
+
+  #Society > #Engineers {
+    margin-left: 30.5vw;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  #Society > #Info {
+    position: absolute;
+    margin-left: 20px;
+    width: 23vw;
+    top: 288.5px;
+    box-shadow: 0px 1px 6px 2px #0000000f;
+    padding: 20px;
+    background-color: var(--theme-back);
+  }
+
+  #Society > #Info > .Options {
+    border-bottom: 1px solid var(--theme-stroke);
+    font-weight: 600;
+    padding-bottom: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  #Society > #Info > .Options > * {
+    margin: 0px 5px;
+    padding: 0 5px;
+    font-weight: 600;
+    border: none;
+    background: none;
+    padding: 7px;
+    border-radius: 3px;
+  }
+
+  #Society > #Info > .Options > *:hover {
+    background: var(--theme-stroke);
+    cursor: pointer;
+  }
+
+  #Society > #Info > .Options > *:active {
+    background-color: var(--theme-back);
+  }
+
+  #Society > #Info > .Options > *:focus {
+    background-color: var(--theme-stroke);
+  }
+
+  #Society > #Info > .Text {
+    padding-top: 20px;
+  }
+
+  #Society > #Close {
+    position: absolute;
+    aspect-ratio: 1/1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    right: 0;
+    border-radius: 100%;
+    padding: 10px;
+    margin: 15px;
+    border: none;
+    background-color: rgba(255 255 255 / 0.4);
+  }
+
+  #Society > #Close:hover {
+    background-color: rgba(255 255 255 / 0.6);
+    cursor: pointer;
+  }
+</style>
