@@ -19,5 +19,6 @@ export default defineConfig({
     }
   }), react()],
   output: "server",
-  adapter: netlify()
+  adapter: netlify(),
+  vite: { build: {rollupOptions: { external: ['netlify-cms-app']}}  }
 });
